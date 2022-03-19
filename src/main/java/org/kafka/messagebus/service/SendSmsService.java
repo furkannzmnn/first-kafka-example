@@ -22,27 +22,29 @@ public class SendSmsService {
     private static final Logger log = LoggerFactory.getLogger(SendSmsService.class);
 
     @Autowired
-    private KafkaTemplate<String , Object> kafkaTemplate;
+    private KafkaTemplate<String , SmsRequest> kafkaTemplate;
 
 
     public void sendSms(String phoneNumber, String message) {
-        ListenableFuture<SendResult<String, Object>> listenableFuture = kafkaTemplate.send("sms", new SmsRequest(phoneNumber, message).toString());
+        ListenableFuture<SendResult<String, SmsRequest>> listenableFuture = kafkaTemplate.send("sms", new SmsRequest(phoneNumber, message));
         listenableFuture.addCallback(
-                result -> log.info("Sent message to Kafka:{} " , result.getProducerRecord().value())
+                result -> {
+                    assert result != null;
+                    log.info("Sent message to Kafka:{} " , result.getProducerRecord().value());
+                }
                 ,
                 ex -> log.error("Exception while sending message to Kafka:{} " , ex.getMessage())
 
         );
     }
 
-    @KafkaListener(topics = "sms", groupId = "test-consumer-group")
-    public void listenTopic(@Payload String meessage,
-                            @Header(KafkaHeaders.RECEIVED_PARTITION_ID) int partition) throws ExecutionException, InterruptedException {
+    @KafkaListener(topics = "sms", containerFactory = "greetingKafkaListenerContainerFactory",groupId = "test-consumer-group" )
+    public void listenTopic(@Payload SmsRequest message) throws ExecutionException, InterruptedException {
 
         CompletableFuture<String> future = CompletableFuture.runAsync(() -> {
             try {
                 Thread.sleep(5000);
-                log.info("Received message from Kafka:{} " , meessage);
+                log.info("Received message from Kafka:{} " , message.getPhoneNumber());
             }catch (InterruptedException e){
                 e.printStackTrace();
             }
@@ -51,8 +53,9 @@ public class SendSmsService {
 
         String s = future.get();
         log.error("Received message from Kafka:{} " , s);
-
     }
+
+
 
 
 

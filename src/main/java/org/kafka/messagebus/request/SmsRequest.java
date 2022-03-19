@@ -1,6 +1,19 @@
 package org.kafka.messagebus.request;
 
-public class SmsRequest {
+import org.springframework.core.serializer.Deserializer;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
+
+public class SmsRequest implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    public SmsRequest() {
+        this.message = null;
+        this.phoneNumber = null;
+    }
 
     private final String phoneNumber;
     private final String message;
@@ -25,4 +38,6 @@ public class SmsRequest {
                 ", message='" + message + '\'' +
                 '}';
     }
+
+
 }
